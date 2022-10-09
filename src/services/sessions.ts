@@ -61,7 +61,7 @@ function buildExtraPrefsFirefox(proxy: Proxy): object {
     const proxyURL = new URL(proxy.url);
   
     const host = proxyURL.host; 
-    const port = proxyURL.port;
+    const port = parseInt(proxyURL.port) || 80;
     if (!host || !port) {
       throw new Error("Proxy configuration is invalid! Use the format: protocol://ip:port")
     }
