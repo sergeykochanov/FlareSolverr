@@ -4,11 +4,13 @@
   "description": "Proxy server to bypass Cloudflare protection.",
   "scripts": {
     "install": "node install.js",
-    "start": "tsc && node ./dist/server.js",
+    "postinstall": "npm run tsc",
+    "start": "node ./dist/server.js",
     "build": "tsc",
     "dev": "nodemon -e ts --exec ts-node src/server.ts",
     "package": "tsc && node build-binaries.js",
-    "test": "jest --runInBand"
+    "test": "jest --runInBand",
+    "tsc": "tsc"
   },
   "author": "Diego Heras (ngosang)",
   "license": "MIT",
