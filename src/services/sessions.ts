@@ -56,7 +56,7 @@ function buildExtraPrefsFirefox(proxy: Proxy): object {
   }
 
   // proxy.url format => http://<host>:<port>
-  if (proxy && proxy.url && false) {
+  if (proxy && proxy.url) {
     log.debug(`Using proxy: ${proxy.url}`)
     const proxyURL = new URL(proxy.url);
   

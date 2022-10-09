@@ -27,7 +27,6 @@
     "console-log-level": "^1.4.1",
     "express": "^4.18.1",
     "puppeteer": "^13.7.0",
-    "puppeteer-proxy": "^2.1.2",
     "uuid": "^8.3.2"
   },
   "devDependencies": {
