@@ -53,13 +53,13 @@ async function resolveChallenge(params: V1Request, session: SessionsCacheItem): 
         // set the proxy
         if (params.proxy) {
             log.debug(`Using proxy: ${params.proxy.url}`);
-            const proxyURL = new URL(params.proxy.url)
-            if (proxyURL.username && proxyURL.password) {
-                 await page.authenticate({
-                     username: proxyURL.username,
-                     password: proxyURL.password
-                  });
-            }
+            // todo: credentials are not working
+            // if (params.proxy.username) {
+            //     await page.authenticate({
+            //         username: params.proxy.username,
+            //         password: params.proxy.password
+            //     });
+            // }
         }
 
         // go to the page
