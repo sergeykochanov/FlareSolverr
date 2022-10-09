@@ -1,5 +1,6 @@
 import {Page, HTTPResponse} from 'puppeteer'
 const Timeout = require('await-timeout');
+const proxyRequest = require('puppeteer-proxy');
 
 import log from './log'
 import {SessionCreateOptions, SessionsCacheItem} from "./sessions";
@@ -53,13 +54,15 @@ async function resolveChallenge(params: V1Request, session: SessionsCacheItem): 
         // set the proxy
         if (params.proxy) {
             log.debug(`Using proxy: ${params.proxy.url}`);
-            // todo: credentials are not working
-            // if (params.proxy.username) {
-            //     await page.authenticate({
-            //         username: params.proxy.username,
-            //         password: params.proxy.password
-            //     });
-            // }
+            await page.setRequestInterception(true);
+
+            page.on('request', async (request) => {
+              await proxyRequest({
+                page,
+                proxyUrl: params.proxy.url,
+                request,
+              });
+            });
         }
 
         // go to the page
