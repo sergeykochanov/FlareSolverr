@@ -1,4 +1,4 @@
-import {Page, HTTPResponse} from 'puppeteer'
+import {Page, HTTPResponse, TimeoutError} from 'puppeteer'
 
 import log from "../services/log";
 
@@ -19,6 +19,8 @@ const CAPTCHA_SELECTORS: string[] = [
     // todo: deprecate 'input[name="cf_captcha_kind"]'
     '#cf-challenge-hcaptcha-wrapper', '#cf-norobot-container', 'input[name="cf_captcha_kind"]'
 ];
+
+const TOKEN_INPUT_NAMES = ['g-recaptcha-response', 'h-captcha-response'];
 
 export default async function resolveChallenge(url: string, page: Page, response: HTTPResponse): Promise<HTTPResponse> {
 
@@ -93,9 +95,59 @@ export default async function resolveChallenge(url: string, page: Page, response
   }
 
   // check for CAPTCHA challenge
-  if (await findAnySelector(page, CAPTCHA_SELECTORS)) {
+  let captchaSelector = await findAnySelector(page, CAPTCHA_SELECTORS)
+  if (captchaSelector) {
     log.info('CAPTCHA challenge detected');
-    throw new Error('FlareSolverr can not resolve CAPTCHA challenges. Since the captcha doesn\'t always appear, you may have better luck with the next request.');
+
+    const captchaStartTimestamp = Date.now()
+    const challengeForm = await page.$('#challenge-form')
+    if (challengeForm) {
+      log.html(await page.content())
+      const captchaTypeElm = await page.$(captchaSelector)
+      const cfCaptchaType: string = await captchaTypeElm.evaluate((e: any) => e.value)
+      log.info('CAPTCHA type is ' + cfCaptchaType);
+
+      // TODO: solve captcha
+      let token = 12345;
+
+      for (const name of TOKEN_INPUT_NAMES) {
+        const input = await page.$(`textarea[name="${name}"]`)
+        if (input) { await input.evaluate((e: HTMLTextAreaElement, token) => { e.value = token }, token) }
+      }
+
+      // ignore preset event listeners on the form
+      await page.evaluate(() => {
+        window.addEventListener('submit', (e) => { event.stopPropagation() }, true)
+      })
+
+      // it seems some sites obfuscate their challenge forms
+      // TODO: look into how they do it and come up with a more solid solution
+      try {
+        // this element is added with js and we want to wait for all the js to load before submitting
+        await page.waitForSelector('#challenge-form [type=submit]', { timeout: 5000 })
+      } catch (err) {
+        if (err instanceof TimeoutError) {
+          log.debug(`No '#challenge-form [type=submit]' element detected.`)
+        }
+      }
+
+      // calculates the time it took to solve the captcha
+      const captchaSolveTotalTime = Date.now() - captchaStartTimestamp
+
+      // generates a random wait time
+      const randomWaitTime = (Math.floor(Math.random() * 20) + 10) * 1000
+
+      // waits, if any, time remaining to appear human but stay as fast as possible
+      const timeLeft = randomWaitTime - captchaSolveTotalTime
+      if (timeLeft > 0) { await page.waitFor(timeLeft) }
+
+      // submit captcha response
+      challengeForm.evaluate((e: HTMLFormElement) => e.submit())
+      response = await page.waitForNavigation({ waitUntil: 'domcontentloaded' })
+
+      throw new Error('Captcha detected but no automatic solver is configured.');
+
+    }
 
     // const captchaSolver = getCaptchaSolver()
     // if (captchaSolver) {
